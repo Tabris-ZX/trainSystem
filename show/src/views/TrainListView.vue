@@ -1,84 +1,74 @@
 <template>
   <div class="train-list-view">
-    <el-card>
+    <el-card class="panel" shadow="never">
       <template #header>
         <div class="header-content">
-          <h3>车次一览</h3>
-          <el-tag type="info">显示所有车次调度计划</el-tag>
+          <div>
+            <h3>车次总览</h3>
+            <p>展示当前系统中全部车次及其线路结构。</p>
+          </div>
+          <el-tag type="info" effect="dark">全量列表</el-tag>
         </div>
       </template>
-      
+
       <div class="toolbar">
         <el-button type="primary" @click="loadTrains" :loading="loading">
           <el-icon><Refresh /></el-icon>
           刷新
         </el-button>
-        <el-input
-          v-model="searchText"
-          placeholder="搜索车次ID、站点..."
-          style="width: 300px; margin-left: 10px"
-          clearable>
+        <el-input v-model="searchText" placeholder="搜索车次 ID 或站点" class="search" clearable>
           <template #prefix>
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
       </div>
-      
-      <el-table 
-        :data="filteredTrains" 
-        style="width: 100%; margin-top: 20px"
-        stripe
-        v-loading="loading">
-        <el-table-column prop="trainId" label="车次ID" width="120" sortable></el-table-column>
-        <el-table-column prop="seatNum" label="座位数" width="100" sortable></el-table-column>
-        <el-table-column prop="startTime" label="首发时间" width="150" sortable></el-table-column>
-        <el-table-column label="站点路线" min-width="200">
-          <template #default="scope">
-            <el-text>{{ scope.row.stations ? scope.row.stations.join(' → ') : '-' }}</el-text>
+
+      <el-table :data="filteredTrains" class="table" stripe v-loading="loading">
+        <el-table-column prop="trainId" label="车次 ID" width="120" sortable />
+        <el-table-column prop="seatNum" label="座位数" width="100" sortable />
+        <el-table-column prop="startTime" label="首发时间" width="150" sortable />
+        <el-table-column label="站点路线" min-width="240">
+          <template #default="{ row }">
+            <el-text>{{ row.stations ? row.stations.join(' -> ') : '-' }}</el-text>
           </template>
         </el-table-column>
-        <el-table-column label="区段时长(分钟)" width="150">
-          <template #default="scope">
-            <el-text>{{ scope.row.durations ? scope.row.durations.join(' / ') : '-' }}</el-text>
+        <el-table-column label="区段时长(分钟)" width="160">
+          <template #default="{ row }">
+            <el-text>{{ row.durations ? row.durations.join(' / ') : '-' }}</el-text>
           </template>
         </el-table-column>
-        <el-table-column label="区段票价(元)" width="150">
-          <template #default="scope">
-            <el-text>{{ scope.row.prices ? scope.row.prices.join(' / ') : '-' }}</el-text>
+        <el-table-column label="区段票价(元)" width="160">
+          <template #default="{ row }">
+            <el-text>{{ row.prices ? row.prices.join(' / ') : '-' }}</el-text>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
-          <template #default="scope">
-            <el-button 
-              type="primary" 
-              size="small" 
-              @click="viewDetails(scope.row)">
-              详情
-            </el-button>
+          <template #default="{ row }">
+            <el-button type="primary" size="small" @click="viewDetails(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
-      
-      <el-empty v-if="filteredTrains.length === 0 && !loading" description="暂无车次信息"></el-empty>
-      
+
+      <el-empty v-if="filteredTrains.length === 0 && !loading" description="暂无车次信息" />
+
       <div v-if="trains.length > 0" class="summary">
         <el-text>共 {{ trains.length }} 个车次</el-text>
       </div>
     </el-card>
-    
-    <!-- 详情对话框 -->
+
     <el-dialog v-model="detailDialogVisible" title="车次详情" width="600px">
       <div v-if="selectedTrain" class="train-details">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="车次ID">{{ selectedTrain.trainId }}</el-descriptions-item>
+          <el-descriptions-item label="车次 ID">{{ selectedTrain.trainId }}</el-descriptions-item>
           <el-descriptions-item label="座位数">{{ selectedTrain.seatNum }}</el-descriptions-item>
           <el-descriptions-item label="首发时间">{{ selectedTrain.startTime }}</el-descriptions-item>
           <el-descriptions-item label="站点数">{{ selectedTrain.stations ? selectedTrain.stations.length : 0 }}</el-descriptions-item>
           <el-descriptions-item label="站点路线" :span="2">
-            <el-tag 
-              v-for="(station, index) in selectedTrain.stations" 
+            <el-tag
+              v-for="(station, index) in selectedTrain.stations"
               :key="index"
-              style="margin-right: 5px; margin-bottom: 5px">
+              class="station-tag"
+            >
               {{ station }}
             </el-tag>
           </el-descriptions-item>
@@ -115,7 +105,7 @@ const filteredTrains = computed(() => {
   const text = searchText.value.toLowerCase()
   return trains.value.filter(train => {
     const trainIdMatch = train.trainId && train.trainId.toLowerCase().includes(text)
-    const stationsMatch = train.stations && train.stations.some(s => s.toLowerCase().includes(text))
+    const stationsMatch = train.stations && train.stations.some(station => station.toLowerCase().includes(text))
     return trainIdMatch || stationsMatch
   })
 })
@@ -128,7 +118,7 @@ const loadTrains = async () => {
         Authorization: `Bearer ${store.sessionId}`
       }
     })
-    
+
     if (response.data.code === 200) {
       trains.value = response.data.data || []
       ElMessage.success('加载成功')
@@ -157,20 +147,43 @@ onMounted(() => {
   width: 100%;
 }
 
+.panel {
+  border: none;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
 }
 
 .header-content h3 {
   margin: 0;
+  font-size: 24px;
+}
+
+.header-content p {
+  margin: 8px 0 0;
+  color: #64748b;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
+  gap: 12px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.search {
+  width: 320px;
+}
+
+.table {
+  margin-top: 20px;
 }
 
 .summary {
@@ -182,5 +195,9 @@ onMounted(() => {
 .train-details {
   padding: 10px 0;
 }
-</style>
 
+.station-tag {
+  margin-right: 6px;
+  margin-bottom: 6px;
+}
+</style>

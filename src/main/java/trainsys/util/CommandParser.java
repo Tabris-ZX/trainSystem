@@ -2,24 +2,16 @@ package trainsys.util;
 
 import trainsys.dao.SchedulerManager;
 import trainsys.dao.StationManager;
-import trainsys.model.*;
-import trainsys.dao.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 命令解析器
- * 负责解析用户输入的命令并调用相应的系统功能
- */
 @Slf4j
 public class CommandParser {
 
-    // 存放参数，例如 argMap.get('u') 存放的是 -u 后面的参数
     private static final Map<Character, String> argMap = new HashMap<>();
 
-    // 外部依赖引用（仅保留实际使用的字段）
     private final RailwayGraph railwayGraph;
     private final SchedulerManager schedulerManager;
     private final StationManager stationManager;
@@ -32,9 +24,6 @@ public class CommandParser {
         this.stationManager = trainSystem.getStationManager();
     }
 
-    /**
-     * 将字符串按照分隔符分割
-     */
     private SeqList<String> splitTokens(String command, char separator) {
         SeqList<String> tokens = new SeqList<>();
         String[] parts = command.split(String.valueOf(separator));
@@ -44,9 +33,6 @@ public class CommandParser {
         return tokens;
     }
 
-    /**
-     * 将字符串转换为数字
-     */
     private long stringToNumber(String str) {
         if (str == null || str.isEmpty()) {
             return 0;
@@ -58,22 +44,15 @@ public class CommandParser {
         }
     }
 
-    /**
-     * 解析并执行命令
-     * @param command 输入的命令字符串
-     * @return 0-正常，1-退出，-1-错误
-     */
     public int parseCommand(String command) {
         int exitCode = 0;
         argMap.clear();
 
-        // 分割命令
         SeqList<String> tokens = splitTokens(command, ' ');
         if (tokens.length() == 0) {
             return -1;
         }
 
-        // 解析参数
         for (int i = 1; i < tokens.length(); i += 2) {
             String token = tokens.visit(i);
             if (token.startsWith("-") && token.length() > 1) {
@@ -91,16 +70,16 @@ public class CommandParser {
             try {
                 switch (commandName) {
                     case "register":
-                        trainSystem.addUser(
-                                stringToNumber(argMap.get('i')),
+                        long userId = trainSystem.addUser(
                                 argMap.get('u'),
                                 argMap.get('p')
                         );
+                        System.out.println("Generated user ID: " + userId);
                         break;
 
                     case "login":
                         trainSystem.login(
-                                stringToNumber(argMap.get('i')),
+                                resolveAccount(),
                                 argMap.get('p')
                         );
                         break;
@@ -119,7 +98,7 @@ public class CommandParser {
                     case "modify_privilege":
                         trainSystem.modifyUserPrivilege(
                                 stringToNumber(argMap.get('i')),
-                                (int)stringToNumber(argMap.get('g'))
+                                (int) stringToNumber(argMap.get('g'))
                         );
                         break;
 
@@ -216,7 +195,7 @@ public class CommandParser {
                         break;
                 }
             } catch (Exception e) {
-                log.error("执行命令时发生错误", e);
+                log.error("Error executing command", e);
                 System.out.println("Error executing command: " + e.getMessage());
                 exitCode = -1;
             }
@@ -225,11 +204,14 @@ public class CommandParser {
         return exitCode;
     }
 
-    /**
-     * 解析添加列车命令
-     * 格式：add_train -i <车次> -m <座位数> -n <站点数> -s <站点列表> -t <首发时间/时长列表> -p <票价列表>
-     * 注意：-t 参数第一个值是首发时间（HH:MM），后面是各区段运行时长（分钟）
-     */
+    private String resolveAccount() {
+        String username = argMap.get('u');
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        return argMap.get('i');
+    }
+
     private void parseAddTrain() {
         SeqList<String> stationsString = splitTokens(argMap.get('s'), '/');
         SeqList<String> pricesString = splitTokens(argMap.get('p'), '/');
@@ -237,8 +219,6 @@ public class CommandParser {
 
         int[] stations = new int[stationsString.length()];
         int[] prices = new int[pricesString.length()];
-        
-        // 第一个值是首发时间（HH:MM），后面是时长
         String startTime = timeDurationsString.visit(0);
         int[] durations = new int[timeDurationsString.length() - 1];
 
@@ -247,27 +227,24 @@ public class CommandParser {
         }
 
         for (int i = 0; i < pricesString.length(); i++) {
-            prices[i] = (int)stringToNumber(pricesString.visit(i));
+            prices[i] = (int) stringToNumber(pricesString.visit(i));
         }
 
         for (int i = 0; i < durations.length; i++) {
-            durations[i] = (int)stringToNumber(timeDurationsString.visit(i + 1));
+            durations[i] = (int) stringToNumber(timeDurationsString.visit(i + 1));
         }
 
         trainSystem.addTrainScheduler(
                 new FixedString(argMap.get('i')),
-                (int)stringToNumber(argMap.get('m')),
+                (int) stringToNumber(argMap.get('m')),
                 startTime,
-                (int)stringToNumber(argMap.get('n')),
+                (int) stringToNumber(argMap.get('n')),
                 stations,
                 durations,
                 prices
         );
     }
 
-    /**
-     * 解析查询最佳路径命令
-     */
     private void parseBestPath() {
         int preference = -1;
         String pref = argMap.get('p');

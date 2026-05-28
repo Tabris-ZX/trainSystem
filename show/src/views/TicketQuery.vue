@@ -1,75 +1,79 @@
 <template>
-  <div class="ticket-query">
-    <el-card>
-      <template #header>
-        <h3>余票查询</h3>
-      </template>
+  <el-card class="panel" shadow="never">
+    <template #header>
+      <div class="panel-header">
+        <div>
+          <h3>余票查询</h3>
+          <p>按车次、出发站和发车时间查询剩余车票。</p>
+        </div>
+        <el-tag type="success" effect="dark">实时查询</el-tag>
+      </div>
+    </template>
 
-      <el-form label-width="110px" class="query-form">
-        <el-form-item label="车次">
-          <el-select
-            v-model="queryForm.trainId"
-            placeholder="请选择车次"
-            filterable
-            clearable
-            @change="handleTrainChange"
-          >
-            <el-option
-              v-for="train in trains"
-              :key="train.trainId"
-              :label="formatTrainLabel(train)"
-              :value="train.trainId"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="出发站">
-          <el-select
-            v-model="queryForm.departureStation"
-            placeholder="请选择出发站"
-            filterable
-            clearable
-          >
-            <el-option
-              v-for="station in availableStations"
-              :key="station"
-              :label="station"
-              :value="station"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="发车日期时间">
-          <el-date-picker
-            v-model="departureDateTime"
-            type="datetime"
-            placeholder="请选择发车日期时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HH:mm"
+    <el-form label-position="top" class="query-grid">
+      <el-form-item label="车次">
+        <el-select
+          v-model="queryForm.trainId"
+          placeholder="请选择车次"
+          filterable
+          clearable
+          @change="handleTrainChange"
+        >
+          <el-option
+            v-for="train in trains"
+            :key="train.trainId"
+            :label="formatTrainLabel(train)"
+            :value="train.trainId"
           />
-        </el-form-item>
+        </el-select>
+      </el-form-item>
 
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="handleQuery">查询余票</el-button>
-        </el-form-item>
-      </el-form>
+      <el-form-item label="出发站">
+        <el-select
+          v-model="queryForm.departureStation"
+          placeholder="请选择出发站"
+          filterable
+          clearable
+        >
+          <el-option
+            v-for="station in availableStations"
+            :key="station"
+            :label="station"
+            :value="station"
+          />
+        </el-select>
+      </el-form-item>
 
-      <el-alert
-        v-if="selectedTrain"
-        class="train-tip"
-        type="info"
-        :closable="false"
-        :title="`当前车次路线：${selectedTrain.stations.join(' -> ')}`"
-      />
+      <el-form-item label="发车日期时间">
+        <el-date-picker
+          v-model="departureDateTime"
+          type="datetime"
+          placeholder="请选择发车日期时间"
+          format="YYYY-MM-DD HH:mm"
+          value-format="YYYY-MM-DD HH:mm"
+        />
+      </el-form-item>
+    </el-form>
 
-      <el-result
-        v-if="remaining !== null"
-        icon="success"
-        :title="`余票数量：${remaining}`"
-        sub-title="查询结果基于所选车次、出发站和发车时间。"
-      />
-    </el-card>
-  </div>
+    <div class="action-row">
+      <el-button type="primary" :loading="loading" @click="handleQuery">查询余票</el-button>
+    </div>
+
+    <el-alert
+      v-if="selectedTrain"
+      class="train-tip"
+      type="info"
+      :closable="false"
+      :title="`当前路线：${selectedTrain.stations.join(' -> ')}`"
+    />
+
+    <el-result
+      v-if="remaining !== null"
+      icon="success"
+      :title="`余票数量：${remaining}`"
+      sub-title="结果基于当前选择的车次、出发站和发车时间。"
+    />
+  </el-card>
 </template>
 
 <script setup>
@@ -112,7 +116,7 @@ const formatDepartureTime = (dateTime) => {
 }
 
 const formatTrainLabel = (train) => {
-  const stationText = train.stations?.length ? train.stations.join(' -> ') : '无站点信息'
+  const stationText = train.stations?.length ? train.stations.join(' -> ') : '暂无站点信息'
   return `${train.trainId} | ${train.startTime} | ${stationText}`
 }
 
@@ -176,15 +180,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.ticket-query {
-  max-width: 800px;
+.panel {
+  border: none;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
-.query-form {
-  max-width: 560px;
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.panel-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.query-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.action-row {
+  margin-top: 8px;
 }
 
 .train-tip {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 </style>

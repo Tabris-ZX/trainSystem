@@ -1,22 +1,22 @@
 <template>
   <div class="register-container">
-    <el-card class="register-card">
+    <el-card class="register-card" shadow="never">
       <template #header>
-        <h2>用户注册</h2>
+        <div>
+          <h2>新用户注册</h2>
+          <p>注册时无需填写用户 ID，系统会自动分配 6 位编号。</p>
+        </div>
       </template>
-      <el-form :model="registerForm" :rules="rules" ref="registerFormRef" label-width="100px">
-        <el-form-item label="用户ID" prop="userId">
-          <el-input v-model.number="registerForm.userId" placeholder="请输入用户ID"></el-input>
-        </el-form-item>
+      <el-form ref="registerFormRef" :model="registerForm" :rules="rules" label-position="top">
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="registerForm.username" placeholder="请输入用户名"></el-input>
+          <el-input v-model="registerForm.username" placeholder="请输入用户名" />
         </el-form-item>
         <el-form-item label="密码" prop="password">
-          <el-input v-model="registerForm.password" type="password" placeholder="请输入密码"></el-input>
+          <el-input v-model="registerForm.password" type="password" show-password placeholder="请输入密码" />
         </el-form-item>
-        <el-form-item>
+        <el-form-item class="actions">
           <el-button type="primary" @click="handleRegister" :loading="loading">注册</el-button>
-          <el-button @click="$router.push('/login')">返回登录</el-button>
+          <el-button @click="router.push('/login')">返回登录</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -35,15 +35,11 @@ const registerFormRef = ref(null)
 const loading = ref(false)
 
 const registerForm = reactive({
-  userId: null,
   username: '',
   password: ''
 })
 
 const rules = {
-  userId: [
-    { required: true, message: '请输入用户ID', trigger: 'blur' }
-  ],
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' }
   ],
@@ -53,43 +49,57 @@ const rules = {
 }
 
 const handleRegister = async () => {
-  await registerFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        const response = await axios.post('/api/user/register', registerForm)
-        
-        if (response.data.code === 200) {
-          ElMessage.success('注册成功，请登录')
-          router.push('/login')
-        } else {
-          ElMessage.error(response.data.message || '注册失败')
-        }
-      } catch (error) {
-        ElMessage.error(error.response?.data?.message || '注册失败')
-      } finally {
-        loading.value = false
-      }
+  const valid = await registerFormRef.value?.validate().catch(() => false)
+  if (!valid) {
+    return
+  }
+
+  loading.value = true
+  try {
+    const response = await axios.post('/api/user/register', registerForm)
+
+    if (response.data.code === 200) {
+      const user = response.data.data
+      ElMessage.success(`注册成功，你的用户 ID 是 ${user.userId}`)
+      router.push('/login')
+    } else {
+      ElMessage.error(response.data.message || '注册失败')
     }
-  })
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '注册失败')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <style scoped>
 .register-container {
+  min-height: 72vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
 }
 
 .register-card {
-  width: 400px;
+  width: 440px;
+  border: none;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .register-card h2 {
   margin: 0;
-  text-align: center;
+  font-size: 24px;
+}
+
+.register-card p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.actions :deep(.el-form-item__content) {
+  display: flex;
+  gap: 12px;
 }
 </style>
-

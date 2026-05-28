@@ -4,8 +4,11 @@ import trainsys.dao.entity.UserEntity;
 import trainsys.dao.mapper.UserMapper;
 import trainsys.dao.support.DbCodec;
 import trainsys.model.UserInfo;
+import trainsys.util.PasswordHasher;
 import trainsys.util.Types.UserID;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class UserManager {
@@ -19,7 +22,7 @@ public class UserManager {
         UserEntity entity = new UserEntity();
         entity.setUserId(userID.value());
         entity.setUsername(username);
-        entity.setPassword(password);
+        entity.setPassword(PasswordHasher.hash(password));
         entity.setPrivilege(privilege);
         userMapper.insert(entity);
     }
@@ -34,6 +37,16 @@ public class UserManager {
             return null;
         }
         return DbCodec.toUserInfo(entity.getUserId(), entity.getUsername(), entity.getPassword(), entity.getPrivilege());
+    }
+
+    public UserInfo findUserByUsername(String username) {
+        List<UserEntity> entities = userMapper.selectList(null);
+        for (UserEntity entity : entities) {
+            if (entity.getUsername() != null && entity.getUsername().equals(username)) {
+                return DbCodec.toUserInfo(entity.getUserId(), entity.getUsername(), entity.getPassword(), entity.getPrivilege());
+            }
+        }
+        return null;
     }
 
     public void removeUser(UserID userID) {
@@ -51,7 +64,7 @@ public class UserManager {
     public void modifyUserPassword(UserID userID, String newPassword) {
         UserEntity entity = userMapper.selectById(userID.value());
         if (entity != null) {
-            entity.setPassword(newPassword);
+            entity.setPassword(PasswordHasher.hash(newPassword));
             userMapper.updateById(entity);
         }
     }

@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Data
 @Slf4j
@@ -53,12 +54,12 @@ public class TrainSystem {
         log.info("Loaded route sections from database");
 
         UserID adminID = new UserID(0L);
-        if (userManager.existUser(adminID)) {
-            currentUser = userManager.findUser(adminID);
-        } else {
-            currentUser = new UserInfo(adminID, "admin", "admin", StaticConfig.ADMIN_PRIVILEGE);
+        // Always keep a built-in admin account in storage, but never treat it as
+        // the currently logged-in user during service startup.
+        if (!userManager.existUser(adminID)) {
             userManager.insertUser(adminID, "admin", "admin", StaticConfig.ADMIN_PRIVILEGE);
         }
+        currentUser = new UserInfo(new UserID(-1L), "", "", 0);
     }
 
     public void addTrainScheduler(FixedString trainID, int seatNum, String startTime, int passingStationNumber,
@@ -255,20 +256,27 @@ public class TrainSystem {
         return railwayGraph.shortestPath(departureID.value(), arrivalID.value(), preference);
     }
 
-    public void login(long userID, String password) {
+    public void login(String account, String password) {
         if (currentUser != null && currentUser.getUserID().value() != -1) {
             System.out.println("Only one user can login in at the same time.");
             return;
         }
-        UserID uid = new UserID(userID);
-        if (!userManager.existUser(uid)) {
+
+        UserInfo userInfo = findUserByAccount(account);
+        if (userInfo == null) {
             System.out.println("User not found. Login failed.");
             return;
         }
-        UserInfo userInfo = userManager.findUser(uid);
-        if (!userInfo.getPassword().equals(password)) {
+
+        // New passwords are stored as hashes. Legacy plaintext records are still
+        // accepted once and upgraded immediately after a successful login.
+        if (!PasswordHasher.matches(password, userInfo.getPassword())) {
             System.out.println("Wrong password. Login failed.");
             return;
+        }
+        if (PasswordHasher.needsUpgrade(userInfo.getPassword())) {
+            userManager.modifyUserPassword(userInfo.getUserID(), password);
+            userInfo = userManager.findUser(userInfo.getUserID());
         }
         currentUser = userInfo;
         System.out.println("Login succeeded.");
@@ -283,14 +291,47 @@ public class TrainSystem {
         System.out.println("Logout succeeded.");
     }
 
-    public void addUser(long userID, String username, String password) {
-        UserID uid = new UserID(userID);
-        if (userManager.existUser(uid)) {
-            System.out.println("User ID existed.");
-            return;
+    public long addUser(String username, String password) {
+        if (username == null || username.isBlank()) {
+            throw new RuntimeException("Username is required.");
         }
+        if (userManager.findUserByUsername(username) != null) {
+            throw new RuntimeException("Username already exists.");
+        }
+
+        UserID uid = generateUserId();
         userManager.insertUser(uid, username, password, 0);
         System.out.println("User added.");
+        return uid.value();
+    }
+
+    // The web API allows users to log in with either a numeric ID or a username.
+    private UserInfo findUserByAccount(String account) {
+        if (account == null || account.isBlank()) {
+            return null;
+        }
+        String normalized = account.trim();
+        if (normalized.chars().allMatch(Character::isDigit)) {
+            long userId = Long.parseLong(normalized);
+            UserInfo byId = userManager.findUser(new UserID(userId));
+            if (byId != null) {
+                return byId;
+            }
+        }
+        return userManager.findUserByUsername(normalized);
+    }
+
+    // Registration now owns ID allocation so callers do not need to coordinate
+    // uniqueness or understand internal ID constraints.
+    private UserID generateUserId() {
+        for (int attempt = 0; attempt < 1000; attempt++) {
+            long candidate = ThreadLocalRandom.current().nextLong(100000L, 1000000L);
+            UserID userID = new UserID(candidate);
+            if (!userManager.existUser(userID)) {
+                return userID;
+            }
+        }
+        throw new RuntimeException("Failed to allocate user ID.");
     }
 
     public void findUserInfoByUserID(long userID) {
@@ -306,7 +347,7 @@ public class TrainSystem {
         }
         System.out.println("UserID: " + userInfo.getUserID().value());
         System.out.println("UserName: " + userInfo.getUsername());
-        System.out.println("Password: " + userInfo.getPassword());
+        System.out.println("Password: [PROTECTED]");
         System.out.println("Privilege: " + userInfo.getPrivilege());
     }
 

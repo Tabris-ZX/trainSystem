@@ -3,6 +3,7 @@ package trainsys.control;
 import trainsys.model.ApiResponse;
 import trainsys.model.LoginRequest;
 import trainsys.model.RegisterRequest;
+import trainsys.model.RegisterResponse;
 import trainsys.model.UserInfoDTO;
 import trainsys.service.UserService;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ApiResponse<String> register(@RequestBody RegisterRequest request) {
+    public ApiResponse<RegisterResponse> register(@RequestBody RegisterRequest request) {
         return userService.register(request);
     }
 

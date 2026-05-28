@@ -6,6 +6,7 @@ import trainsys.dao.UserDao;
 import trainsys.model.ApiResponse;
 import trainsys.model.LoginRequest;
 import trainsys.model.RegisterRequest;
+import trainsys.model.RegisterResponse;
 import trainsys.model.UserInfoDTO;
 import trainsys.model.UserInfo;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class UserService {
         try {
             UserInfo currentUser = userDao.login(request);
             if (currentUser == null || currentUser.getUserID().value() == -1) {
-                return ApiResponse.error("登录失败，用户ID或密码错误");
+                return ApiResponse.error("登录失败，用户名、用户 ID 或密码错误");
             }
 
             String sessionId = "session_" + currentUser.getUserID().value() + "_" + System.currentTimeMillis();
@@ -45,10 +46,10 @@ public class UserService {
         }
     }
 
-    public ApiResponse<String> register(RegisterRequest request) {
+    public ApiResponse<RegisterResponse> register(RegisterRequest request) {
         try {
-            userDao.register(request);
-            return ApiResponse.success("注册成功", null);
+            long userId = userDao.register(request);
+            return ApiResponse.success("注册成功", new RegisterResponse(userId, request.getUsername()));
         } catch (Exception e) {
             return ApiResponse.error("注册失败: " + e.getMessage());
         }

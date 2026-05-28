@@ -1,6 +1,7 @@
 package trainsys.model;
 
 import trainsys.config.StaticConfig;
+import trainsys.util.PasswordHasher;
 import trainsys.util.Types.UserID;
 import lombok.Data;
 import lombok.Getter;
@@ -65,6 +66,10 @@ public class UserInfo implements Comparable<UserInfo> {
     public void setPassword(String password) {
         if (password == null) {
             this.password = "";
+        } else if (!PasswordHasher.needsUpgrade(password)) {
+            // Password hashes must be stored verbatim; truncating them would make
+            // every login check fail even when the raw password is correct.
+            this.password = password;
         } else if (password.length() > StaticConfig.MAX_PASSWORD_LEN) {
             this.password = password.substring(0, StaticConfig.MAX_PASSWORD_LEN);
         } else {
@@ -95,7 +100,7 @@ public class UserInfo implements Comparable<UserInfo> {
         return "UserInfo{" +
                 "userID=" + userID +
                 ", username='" + username + '\'' +
-                ", password='" + password + '\'' +
+                ", password='[PROTECTED]'" +
                 ", privilege=" + privilege +
                 '}';
     }

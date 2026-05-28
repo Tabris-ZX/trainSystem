@@ -1,36 +1,40 @@
 <template>
-  <div class="my-orders">
-    <el-card>
-      <template #header>
-        <h3>我的订单</h3>
-      </template>
-      <el-button type="primary" @click="loadOrders" :loading="loading">刷新</el-button>
-      
-      <el-table :data="orders" style="width: 100%; margin-top: 20px">
-        <el-table-column prop="trainId" label="车次ID" width="120"></el-table-column>
-        <el-table-column prop="departureStation" label="出发站" width="120"></el-table-column>
-        <el-table-column prop="arrivalStation" label="到达站" width="120"></el-table-column>
-        <el-table-column prop="departureTime" label="出发时间" width="150"></el-table-column>
-        <el-table-column prop="arrivalTime" label="到达时间" width="150"></el-table-column>
-        <el-table-column prop="duration" label="时长(分钟)" width="100"></el-table-column>
-        <el-table-column prop="price" label="票价" width="100"></el-table-column>
-        <el-table-column prop="ticketNumber" label="票数" width="80"></el-table-column>
-        <el-table-column label="操作" width="150">
-          <template #default="scope">
-            <el-button
-              v-if="scope.row.ticketNumber > 0"
-              type="danger"
-              size="small"
-              @click="handleRefund(scope.row)">
-              退票
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <el-empty v-if="orders.length === 0 && !loading" description="暂无订单"></el-empty>
-    </el-card>
-  </div>
+  <el-card class="panel" shadow="never">
+    <template #header>
+      <div class="panel-header">
+        <div>
+          <h3>我的订单</h3>
+          <p>查看已购车票，并对可退订单执行退票。</p>
+        </div>
+        <el-button type="primary" @click="loadOrders" :loading="loading">刷新</el-button>
+      </div>
+    </template>
+
+    <el-table :data="orders" class="table" stripe>
+      <el-table-column prop="trainId" label="车次 ID" width="120" />
+      <el-table-column prop="departureStation" label="出发站" width="120" />
+      <el-table-column prop="arrivalStation" label="到达站" width="120" />
+      <el-table-column prop="departureTime" label="出发时间" width="150" />
+      <el-table-column prop="arrivalTime" label="到达时间" width="150" />
+      <el-table-column prop="duration" label="时长(分钟)" width="110" />
+      <el-table-column prop="price" label="票价" width="100" />
+      <el-table-column prop="ticketNumber" label="票数" width="80" />
+      <el-table-column label="操作" width="120" fixed="right">
+        <template #default="{ row }">
+          <el-button
+            v-if="row.ticketNumber > 0"
+            type="danger"
+            size="small"
+            @click="handleRefund(row)"
+          >
+            退票
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <el-empty v-if="orders.length === 0 && !loading" description="暂无订单" />
+  </el-card>
 </template>
 
 <script setup>
@@ -52,7 +56,7 @@ const loadOrders = async () => {
         Authorization: `Bearer ${store.sessionId}`
       }
     })
-    
+
     if (response.data.code === 200) {
       orders.value = response.data.data || []
     } else {
@@ -67,12 +71,12 @@ const loadOrders = async () => {
 
 const handleRefund = async (order) => {
   try {
-    await ElMessageBox.confirm('确定要退票吗？', '退票确认', {
+    await ElMessageBox.confirm('确定要退掉这张票吗？', '退票确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     const response = await axios.post('/api/ticket/refund', {
       trainId: order.trainId,
       departureTime: order.departureTime,
@@ -82,7 +86,7 @@ const handleRefund = async (order) => {
         Authorization: `Bearer ${store.sessionId}`
       }
     })
-    
+
     if (response.data.code === 200) {
       ElMessage.success('退票成功')
       loadOrders()
@@ -102,8 +106,30 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.my-orders {
-  width: 100%;
+.panel {
+  border: none;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.panel-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.table {
+  margin-top: 8px;
 }
 </style>
-

@@ -1,76 +1,80 @@
 <template>
-  <div class="buy-ticket">
-    <el-card>
-      <template #header>
-        <h3>购买车票</h3>
-      </template>
+  <el-card class="panel" shadow="never">
+    <template #header>
+      <div class="panel-header">
+        <div>
+          <h3>在线购票</h3>
+          <p>先确认剩余票数，再提交购票请求。</p>
+        </div>
+        <el-tag type="warning" effect="dark">需登录</el-tag>
+      </div>
+    </template>
 
-      <el-form label-width="110px" class="buy-form">
-        <el-form-item label="车次">
-          <el-select
-            v-model="buyForm.trainId"
-            placeholder="请选择车次"
-            filterable
-            clearable
-            @change="handleTrainChange"
-          >
-            <el-option
-              v-for="train in trains"
-              :key="train.trainId"
-              :label="formatTrainLabel(train)"
-              :value="train.trainId"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="出发站">
-          <el-select
-            v-model="buyForm.departureStation"
-            placeholder="请选择出发站"
-            filterable
-            clearable
-          >
-            <el-option
-              v-for="station in availableStations"
-              :key="station"
-              :label="station"
-              :value="station"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="发车日期时间">
-          <el-date-picker
-            v-model="departureDateTime"
-            type="datetime"
-            placeholder="请选择发车日期时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HH:mm"
+    <el-form label-position="top" class="form-grid">
+      <el-form-item label="车次">
+        <el-select
+          v-model="buyForm.trainId"
+          placeholder="请选择车次"
+          filterable
+          clearable
+          @change="handleTrainChange"
+        >
+          <el-option
+            v-for="train in trains"
+            :key="train.trainId"
+            :label="formatTrainLabel(train)"
+            :value="train.trainId"
           />
-        </el-form-item>
+        </el-select>
+      </el-form-item>
 
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="queryRemaining">先查余票</el-button>
-          <el-button type="success" :loading="buying" @click="handleBuy">确认购票</el-button>
-        </el-form-item>
-      </el-form>
+      <el-form-item label="出发站">
+        <el-select
+          v-model="buyForm.departureStation"
+          placeholder="请选择出发站"
+          filterable
+          clearable
+        >
+          <el-option
+            v-for="station in availableStations"
+            :key="station"
+            :label="station"
+            :value="station"
+          />
+        </el-select>
+      </el-form-item>
 
-      <el-alert
-        v-if="selectedTrain"
-        class="train-tip"
-        type="info"
-        :closable="false"
-        :title="`当前车次路线：${selectedTrain.stations.join(' -> ')}`"
-      />
+      <el-form-item label="发车日期时间">
+        <el-date-picker
+          v-model="departureDateTime"
+          type="datetime"
+          placeholder="请选择发车日期时间"
+          format="YYYY-MM-DD HH:mm"
+          value-format="YYYY-MM-DD HH:mm"
+        />
+      </el-form-item>
+    </el-form>
 
-      <el-descriptions v-if="remaining !== null" :column="1" border class="summary">
-        <el-descriptions-item label="余票">{{ remaining }}</el-descriptions-item>
-        <el-descriptions-item label="购票状态">
-          {{ remaining > 0 ? '可购买' : '暂无余票' }}
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
-  </div>
+    <div class="actions">
+      <el-button type="primary" :loading="loading" @click="queryRemaining">先查余票</el-button>
+      <el-button type="success" :loading="buying" @click="handleBuy">确认购票</el-button>
+    </div>
+
+    <el-alert
+      v-if="selectedTrain"
+      class="train-tip"
+      type="info"
+      :closable="false"
+      :title="`当前路线：${selectedTrain.stations.join(' -> ')}`"
+    />
+
+    <el-descriptions v-if="remaining !== null" :column="1" border class="summary">
+      <el-descriptions-item label="余票">{{ remaining }}</el-descriptions-item>
+      <el-descriptions-item label="购票状态">
+        {{ remaining > 0 ? '可以购买' : '当前无票' }}
+      </el-descriptions-item>
+    </el-descriptions>
+  </el-card>
 </template>
 
 <script setup>
@@ -114,7 +118,7 @@ const formatDepartureTime = (dateTime) => {
 }
 
 const formatTrainLabel = (train) => {
-  const stationText = train.stations?.length ? train.stations.join(' -> ') : '无站点信息'
+  const stationText = train.stations?.length ? train.stations.join(' -> ') : '暂无站点信息'
   return `${train.trainId} | ${train.startTime} | ${stationText}`
 }
 
@@ -187,7 +191,7 @@ const handleBuy = async () => {
     return
   }
 
-  if (remaining === null) {
+  if (remaining.value === null) {
     await queryRemaining()
   }
 
@@ -224,19 +228,45 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.buy-ticket {
-  max-width: 800px;
+.panel {
+  border: none;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
-.buy-form {
-  max-width: 560px;
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.panel-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
 }
 
 .train-tip {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .summary {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 </style>
